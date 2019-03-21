@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import datetime
 import json
 import re
@@ -53,7 +55,9 @@ def build_slackblock(clean_checkin_data):
             "type": "image",
             "image_url": clean_checkin_data['image'],
             "alt_text": "Today's Daily Doug Brew of Day"
-        },
+        },{
+            "type": "divider"
+        }
     ]}
 
 def prepend_hostname(path: str) -> str:
@@ -177,6 +181,6 @@ for i, c in enumerate(checkins):
 slackblock_stack.reverse()
 
 for c in slackblock_stack:
-    post_to_webhook(config['webhook_url'], json.dumps(block))
+    post_to_webhook(config['webhook_url'], json.dumps(c))
     
 write_latest_checkin_id(latest_checkin_id)
