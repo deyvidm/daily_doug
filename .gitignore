@@ -14,5 +14,11 @@ main
 
 # State storage
 *.dat
-.DS_Store
+
+# don't save config details, only structure
 config.yml
+
+
+.DS_Store
+.vscode
+
