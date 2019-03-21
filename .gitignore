@@ -14,5 +14,5 @@ main
 
 # State storage
 *.dat
-
+.DS_Store
 config.yml
