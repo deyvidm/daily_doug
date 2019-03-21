@@ -14,3 +14,5 @@ main
 
 # State storage
 *.dat
+
+config.yml
