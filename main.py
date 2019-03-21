@@ -1,8 +1,14 @@
+import datetime
 import json
 import re
 import requests
 import yaml
+import pprint
+
 from bs4 import BeautifulSoup
+
+
+CONFIG_PATH = './config.yml'
 
 def post_to_webhook(webhook_url: str, json_payload: str):
     headers = {'Content-type': 'application/json'}
@@ -66,14 +72,26 @@ def find_rating_in_class_list(classes: list) -> str:
     raise Exception("could not find rating in classlist: [{}]".format(', '.join(classes)))
 
 def scrape_checkin(checkin_container) -> dict:
+    checkin_id = checkin_container['data-checkin-id']
+    print("processing checkin {}".format(checkin_id))
+
     raw_checkin_data = checkin_container.find('div', class_='checkin').find('div', class_='top')
 
     raw_description_parts = raw_checkin_data.find('p', class_='text').find_all('a')
     comment = raw_checkin_data.find('div', class_='checkin-comment').find('p', class_='comment-text').text
     rating_classes = raw_checkin_data.find('span', class_='rating')['class']
     rating = find_rating_in_class_list(rating_classes)
-    img_url = raw_checkin_data.find('p', class_='photo').find('img', class_='lazy')['data-original']
     
+    # some posts have no image ¯\_(ツ)_/¯
+    # just try and catch the AttributeError that comes from the chained .find method
+    # pretty bad to actively rely on an exception -- should change this lol
+    img_url = None
+    try:
+        img_url = raw_checkin_data.find('p', class_='photo').find('img', class_='lazy')['data-original']
+    except AttributeError:
+        print("could not find image for {}".format(checkin_id))
+
+
     checkin = {
         'user': {
             'text': raw_description_parts[0].text,
@@ -93,7 +111,8 @@ def scrape_checkin(checkin_container) -> dict:
         },
         'comment': comment,
         'rating': rating,
-        'image': img_url
+        'image': img_url,
+        'checkin_id': checkin_id
     }
 
     return checkin
@@ -114,14 +133,50 @@ def gather_checkins(http_response_obj: requests.Response) :
     soup = BeautifulSoup(http_response_obj.content, 'html.parser')
     return soup.find_all(id=re.compile(r"^checkin_\d+$"))
 
-config = import_config('config.yml')
+def write_latest_checkin_id(latest_checkin_id):
+    config['last_checkin_id'] = latest_checkin_id
+    with open(CONFIG_PATH, 'w') as outfile:
+        yaml.dump(config, outfile, default_flow_style=False)
+
+config = import_config(CONFIG_PATH)
 response = get_page(config['untappd_url'])
 checkins = gather_checkins(response)
-checkin = scrape_checkin(checkins[0])
 
-print(checkin)
+slackblock_stack = []
+# the checkins are fetched latest -> oldest
+# > clean checkin data
+# > store the first checkin's id as 'latest' -- this is the latest checkin reported by untappd 
+# > if the current checkin's id is the same as the one from last run, then we've run out of new checkins
+# > if the previous is true, AND the current checkin's id is the same as the 'latest' checkin's id, then there are no new checkins at all
+#   > just terminate, no work left to do 
+# > else, store the ID and finish sending the remaining new checkins
+# > store the latest checkin ID and move on
 
-block = build_slackblock(checkin)
-# print(json.dumps(block))
+# in order to display them in the right order, the list needs to be reversed
+# also need to store the latest checkin's id for next run, which is easier when it's at index [0]
 
-post_to_webhook(config['webhook_url'], json.dumps(block))
+# fetch checkins in default untappd order (latest -> oldest)
+latest_checkin_id = None
+for i, c in enumerate(checkins):
+    clean_checkin = scrape_checkin(c)
+    
+    if i == 0:
+        latest_checkin_id = clean_checkin['checkin_id']
+
+    if clean_checkin['checkin_id'] == config['last_checkin_id']:
+        if clean_checkin['checkin_id'] == latest_checkin_id:
+            print("No new checkins at {}".format(datetime.datetime.now()))
+            exit()
+        write_latest_checkin_id(latest_checkin_id)
+        break
+    
+    # convert to slack message blocks
+    slackblock_stack.append(build_slackblock(clean_checkin))    
+
+# reverse and continue
+slackblock_stack.reverse()
+
+for c in slackblock_stack:
+    post_to_webhook(config['webhook_url'], json.dumps(block))
+    
+write_latest_checkin_id(latest_checkin_id)
