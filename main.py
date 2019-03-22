@@ -2,21 +2,23 @@
 
 import datetime
 import json
+import logging
 import re
 import requests
 import yaml
-import pprint
 
 from bs4 import BeautifulSoup
 
 
 CONFIG_PATH = './config.yml'
+LOG_PATH =    './runlog'
+logging.basicConfig(filename=LOG_PATH, format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.info("\n{}\nRun started\n".format("="*80))
 
 def post_to_webhook(webhook_url: str, json_payload: str):
     headers = {'Content-type': 'application/json'}
     r = requests.post(webhook_url, headers=headers, data=json_payload)
-    print(r.status_code)
-    print(r.text)
+    logging.info("{} :: {}".format(r.status_code, r.text))
 
 def build_slackblock_link(text: str, link: str) -> str:
     return '<{0}|{1}>'.format(link, text)
@@ -77,7 +79,7 @@ def find_rating_in_class_list(classes: list) -> str:
 
 def scrape_checkin(checkin_container) -> dict:
     checkin_id = checkin_container['data-checkin-id']
-    print("processing checkin {}".format(checkin_id))
+    logging.info("processing checkin {}".format(checkin_id))
 
     raw_checkin_data = checkin_container.find('div', class_='checkin').find('div', class_='top')
 
@@ -93,7 +95,7 @@ def scrape_checkin(checkin_container) -> dict:
     try:
         img_url = raw_checkin_data.find('p', class_='photo').find('img', class_='lazy')['data-original']
     except AttributeError:
-        print("could not find image for {}".format(checkin_id))
+        logging.info("could not find image for {}".format(checkin_id))
 
 
     checkin = {
@@ -169,7 +171,7 @@ for i, c in enumerate(checkins):
 
     if clean_checkin['checkin_id'] == config['last_checkin_id']:
         if clean_checkin['checkin_id'] == latest_checkin_id:
-            print("No new checkins at {}".format(datetime.datetime.now()))
+            logging.info("no new checkins")
             exit()
         write_latest_checkin_id(latest_checkin_id)
         break
