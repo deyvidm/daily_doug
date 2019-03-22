@@ -6,12 +6,17 @@ import logging
 import re
 import requests
 import yaml
+import os
 
 from bs4 import BeautifulSoup
 
 
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
 CONFIG_PATH = './config.yml'
 LOG_PATH =    './runlog'
+
 logging.basicConfig(filename=LOG_PATH, format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logging.info("\n{}\nRun started\n".format("="*80))
 
@@ -124,7 +129,7 @@ def scrape_checkin(checkin_container) -> dict:
     return checkin
 
 def import_config(config_path: str) -> object:
-    f = open(config_path, 'r')
+    f = open(os.path.join(__location__, config_path), 'r')
     config = yaml.safe_load(f)
     return config
 
@@ -141,7 +146,7 @@ def gather_checkins(http_response_obj: requests.Response) :
 
 def write_latest_checkin_id(latest_checkin_id):
     config['last_checkin_id'] = latest_checkin_id
-    with open(CONFIG_PATH, 'w') as outfile:
+    with open(os.path.join(__location__, CONFIG_PATH), 'w') as outfile:
         yaml.dump(config, outfile, default_flow_style=False)
 
 config = import_config(CONFIG_PATH)
