@@ -5,3 +5,7 @@
 The slack app is a simple Python web scraper using [Requests](http://docs.python-requests.org/en/master/) and [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
 
 
+### Setup 
+
+To set this up for your workspace, paste the incoming webhook URL in the config file. 
+The first run will fetch all visible checkins and 'bookmark' the latest so that future runs only fetch new checkins. 
