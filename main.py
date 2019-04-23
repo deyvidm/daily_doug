@@ -18,7 +18,7 @@ CONFIG_PATH = os.path.join(__location__, './config.yml')
 LOG_PATH =    os.path.join(__location__, './runlog')
 
 logging.basicConfig(filename=LOG_PATH, format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
-logging.info("\n{}\nRun started\n".format("="*80))
+logging.info("=== Run started ===")
 
 def post_to_webhook(webhook_url: str, json_payload: str):
     headers = {'Content-type': 'application/json'}
@@ -82,17 +82,43 @@ def find_rating_in_class_list(classes: list) -> str:
 
     raise Exception("could not find rating in classlist: [{}]".format(', '.join(classes)))
 
+def extract_checkin_description(raw_description_parts): 
+    checkin = {
+        'user': {
+            'text': raw_description_parts[0].text,
+            'link': prepend_hostname(raw_description_parts[0].get('href'))
+        },
+        'brew': {
+            'text': raw_description_parts[1].text,
+            'link': prepend_hostname(raw_description_parts[1].get('href'))
+        },
+        'brewery': {
+            'text': raw_description_parts[2].text,
+            'link': prepend_hostname(raw_description_parts[2].get('href'))
+        }
+
+    }
+
+    if len(raw_description_parts) == 4:
+        checkin['location']: {
+            'text': raw_description_parts[3].text,
+            'link': prepend_hostname(raw_description_parts[3].get('href'))
+        }
+    
+    
+
 def scrape_checkin(checkin_container) -> dict:
     checkin_id = checkin_container['data-checkin-id']
     logging.info("processing checkin {}".format(checkin_id))
 
     raw_checkin_data = checkin_container.find('div', class_='checkin').find('div', class_='top')
 
-    raw_description_parts = raw_checkin_data.find('p', class_='text').find_all('a')
     comment = raw_checkin_data.find('div', class_='checkin-comment').find('p', class_='comment-text').text
     rating_classes = raw_checkin_data.find('span', class_='rating')['class']
     rating = find_rating_in_class_list(rating_classes)
-    
+
+    raw_description_parts = raw_checkin_data.find('p', class_='text').find_all('a')
+
     # some posts have no image ¯\_(ツ)_/¯
     # just try and catch the AttributeError that comes from the chained .find method
     # pretty bad to actively rely on an exception -- should change this lol
