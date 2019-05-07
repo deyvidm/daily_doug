@@ -8,7 +8,12 @@ import requests
 import yaml
 import os
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
+from collections import defaultdict
+
+from test_cases import get_test_checkin
+
+
 
 
 __location__ = os.path.realpath(
@@ -29,15 +34,20 @@ def build_slackblock_link(text: str, link: str) -> str:
     return '<{0}|{1}>'.format(link, text)
 
 def build_slackblock_description(checkin): 
-    return ''.join([
+    parts = [
         build_slackblock_link(checkin['user']['text'], checkin['user']['link']) + " is drinking a ",
         build_slackblock_link(checkin['brew']['text'], checkin['brew']['link']) + " by ",
-        build_slackblock_link(checkin['brewery']['text'], checkin['brew']['link']) + " at ",
-        build_slackblock_link(checkin['location']['text'], checkin['location']['link']),
-    ])
+        build_slackblock_link(checkin['brewery']['text'], checkin['brew']['link'])
+    ]
+
+    if 'location' in checkin:
+        parts.extend([" at ", build_slackblock_link(checkin['location']['text'], checkin['location']['link'])])
+    
+    return ''.join(parts)
     
 def build_slackblock(clean_checkin_data): 
-    return {"blocks": [
+    blocks = defaultdict(list)
+    blocks = [
         {
             "type": "section",
             "text": {
@@ -58,14 +68,26 @@ def build_slackblock(clean_checkin_data):
                 "type": "mrkdwn",
                 "text": clean_checkin_data['comment']
             }
-	    },{
+	    }
+    ]
+
+    if clean_checkin_data['image'] is not None:
+        blocks.append(
+        {
             "type": "image",
             "image_url": clean_checkin_data['image'],
             "alt_text": "Today's Daily Doug Brew of Day"
-        },{
+        }
+    )
+
+    blocks.append(
+        {
             "type": "divider"
         }
-    ]}
+    )
+
+    return {"blocks": blocks}
+
 
 def prepend_hostname(path: str) -> str:
     return "https://untappd.com" + path
@@ -81,31 +103,6 @@ def find_rating_in_class_list(classes: list) -> str:
         return(m.group(1)+"."+m.group(2))
 
     raise Exception("could not find rating in classlist: [{}]".format(', '.join(classes)))
-
-def extract_checkin_description(raw_description_parts): 
-    checkin = {
-        'user': {
-            'text': raw_description_parts[0].text,
-            'link': prepend_hostname(raw_description_parts[0].get('href'))
-        },
-        'brew': {
-            'text': raw_description_parts[1].text,
-            'link': prepend_hostname(raw_description_parts[1].get('href'))
-        },
-        'brewery': {
-            'text': raw_description_parts[2].text,
-            'link': prepend_hostname(raw_description_parts[2].get('href'))
-        }
-
-    }
-
-    if len(raw_description_parts) == 4:
-        checkin['location']: {
-            'text': raw_description_parts[3].text,
-            'link': prepend_hostname(raw_description_parts[3].get('href'))
-        }
-    
-    
 
 def scrape_checkin(checkin_container) -> dict:
     checkin_id = checkin_container['data-checkin-id']
@@ -142,15 +139,17 @@ def scrape_checkin(checkin_container) -> dict:
             'text': raw_description_parts[2].text,
             'link': prepend_hostname(raw_description_parts[2].get('href'))
         },
-        'location': {
-            'text': raw_description_parts[3].text,
-            'link': prepend_hostname(raw_description_parts[3].get('href'))
-        },
         'comment': comment,
         'rating': rating,
         'image': img_url,
         'checkin_id': checkin_id
     }
+
+    if len(raw_description_parts) == 4:
+        checkin['location']: {
+            'text': raw_description_parts[3].text,
+            'link': prepend_hostname(raw_description_parts[3].get('href'))
+        }
 
     return checkin
 
@@ -176,8 +175,14 @@ def write_latest_checkin_id(latest_checkin_id):
         yaml.dump(config, outfile, default_flow_style=False)
 
 config = import_config(CONFIG_PATH)
-response = get_page(config['untappd_url'])
-checkins = gather_checkins(response)
+# response = get_page(config['untappd_url'])
+# checkins = gather_checkins(response)
+
+
+test_soup = BeautifulSoup(get_test_checkin(), 'html.parser')
+checkins = test_soup.find_all(id=re.compile(r"^checkin_\d+$"))
+config['last_checkin_id'] = '123'
+
 
 slackblock_stack = []
 # the checkins are fetched latest -> oldest
