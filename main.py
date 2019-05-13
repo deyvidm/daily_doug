@@ -44,7 +44,21 @@ def build_slackblock_description(checkin):
         parts.extend([" at ", build_slackblock_link(checkin['location']['text'], checkin['location']['link'])])
     
     return ''.join(parts)
-    
+
+def scan_for_special_brew(checkin, blocks):
+    if ('born to be mild' in checkin['brew']['text'].lower() and 
+        'stack brewing' in checkin['brewery']['text'].lower()): 
+
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "🍺 🎉 🎉 This is our friend Christina's beer! 🎉 🎉 🍺"
+            }
+        })
+
+    return blocks
+
 def build_slackblock(clean_checkin_data): 
     blocks = defaultdict(list)
     blocks = [
@@ -70,6 +84,9 @@ def build_slackblock(clean_checkin_data):
             }
 	    }
     ]
+
+    blocks = scan_for_special_brew(clean_checkin_data, blocks)
+
 
     if clean_checkin_data['image'] is not None:
         blocks.append(
@@ -103,6 +120,7 @@ def find_rating_in_class_list(classes: list) -> str:
         return(m.group(1)+"."+m.group(2))
 
     raise Exception("could not find rating in classlist: [{}]".format(', '.join(classes)))
+
 
 def scrape_checkin(checkin_container) -> dict:
     checkin_id = checkin_container['data-checkin-id']
