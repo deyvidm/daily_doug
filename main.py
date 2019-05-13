@@ -146,7 +146,7 @@ def scrape_checkin(checkin_container) -> dict:
     }
 
     if len(raw_description_parts) == 4:
-        checkin['location']: {
+        checkin['location'] = {
             'text': raw_description_parts[3].text,
             'link': prepend_hostname(raw_description_parts[3].get('href'))
         }
@@ -175,13 +175,15 @@ def write_latest_checkin_id(latest_checkin_id):
         yaml.dump(config, outfile, default_flow_style=False)
 
 config = import_config(CONFIG_PATH)
-# response = get_page(config['untappd_url'])
-# checkins = gather_checkins(response)
+response = get_page(config['untappd_url'])
+checkins = gather_checkins(response)
 
 
-test_soup = BeautifulSoup(get_test_checkin(), 'html.parser')
-checkins = test_soup.find_all(id=re.compile(r"^checkin_\d+$"))
-config['last_checkin_id'] = '123'
+# Testing Code: Phase out in favour of something more flexible 
+
+# test_soup = BeautifulSoup(get_test_checkin(), 'html.parser')
+# checkins = test_soup.find_all(id=re.compile(r"^checkin_\d+$"))
+# config['last_checkin_id'] = '123'
 
 
 slackblock_stack = []
@@ -201,7 +203,7 @@ slackblock_stack = []
 latest_checkin_id = None
 for i, c in enumerate(checkins):
     clean_checkin = scrape_checkin(c)
-    
+         
     if i == 0:
         latest_checkin_id = clean_checkin['checkin_id']
 
