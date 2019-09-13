@@ -82,7 +82,7 @@ def build_slackblock(clean_checkin_data):
                 "type": "mrkdwn",
                 "text": clean_checkin_data['comment']
             }
-	    }
+        }
     ]
 
     blocks = scan_for_special_brew(clean_checkin_data, blocks)
@@ -110,10 +110,10 @@ def prepend_hostname(path: str) -> str:
     return "https://untappd.com" + path
 
 def find_rating_in_class_list(classes: list) -> str:    
-    r = re.compile(r'r(\d)(\d\d)')
+    r = re.compile(r'(\d)(\d\d)')
 
     for c in classes: 
-        m = r.match(c)
+        m = r.search(c)
         if not m:
             continue
         
