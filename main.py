@@ -144,8 +144,8 @@ def scrape_checkin(checkin_container) -> dict:
 
     comment = raw_checkin_data.find(
         'div', class_='checkin-comment').find('p', class_='comment-text').text
-    rating_classes = raw_checkin_data.find('span', class_='rating')['class']
-    rating = find_rating_in_class_list(rating_classes)
+
+    rating = raw_checkin_data.find('div', class_='caps')['data-rating']
 
     raw_description_parts = raw_checkin_data.find(
         'p', class_='text').find_all('a')
