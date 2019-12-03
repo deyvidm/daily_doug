@@ -145,10 +145,12 @@ def scrape_checkin(checkin_container) -> dict:
     comment = raw_checkin_data.find(
         'div', class_='checkin-comment').find('p', class_='comment-text').text
 
-    rating = raw_checkin_data.find('div', class_='caps')['data-rating']
+    rating_blob = raw_checkin_data.find('div', class_='caps')
+    rating = 'N/A'
+    if rating_blob is not None:
+        rating = rating_blob['data-rating']
 
-    raw_description_parts = raw_checkin_data.find(
-        'p', class_='text').find_all('a')
+    raw_description_parts = raw_checkin_data.find('p', class_='text').find_all('a')
 
     # some posts have no image ¯\_(ツ)_/¯
     # just try and catch the AttributeError that comes from the chained .find method
