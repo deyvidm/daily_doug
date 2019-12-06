@@ -22,7 +22,8 @@ config.yml
 .DS_Store
 .vscode
 
-
-.venv
 runlog
 test_cases*
+
+.venv*
+lib
