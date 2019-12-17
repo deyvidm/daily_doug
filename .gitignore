@@ -27,3 +27,5 @@ test_cases*
 
 .venv*
 lib
+
+package.zip
