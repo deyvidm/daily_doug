@@ -1,10 +1,3 @@
-from scraper import *
-from main import main
-from slack import *
-from lib import yaml
-from lib import requests
-from lib import pymysql
-from lib.bs4 import BeautifulSoup, SoupStrainer
 import datetime
 import functools
 import json
@@ -18,6 +11,16 @@ from collections import defaultdict
 sys.path.insert(1, './lib')
 sys.path.insert(1, './src')
 
+from lib.bs4 import BeautifulSoup, SoupStrainer
+from lib import pymysql
+from lib import requests
+from lib import yaml
+
+
+from scraper import * 
+from slack import *
+from main import main
+
 
 logging.basicConfig(
     filename=LOG_PATH, format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -27,26 +30,20 @@ logger.setLevel(logging.INFO)
 
 
 def lambda_handler(event, context):
-    try:
-        response = get_page(os.environ['untappd_url'])
-        checkins = gather_checkins(response)
+    response = get_page(os.environ['untappd_url'])
+    checkins = gather_checkins(response)
     
-        logger.info("gathereed " + str(len(checkins)) + " checkins")
+    logger.info("gathereed " + str(len(checkins)) + " checkins" )
     
-        latest_checkin_id = main(logger, checkins, event['latest_checkin_id'])
+    latest_checkin_id = main(logger, checkins, event['latest_checkin_id'])
     
-        if latest_checkin_id is None:
-            latest_checkin_id = event['latest_checkin_id']
-    
-        return {
-            'statusCode': 200,
-            'last_checkin_id': latest_checkin_id
-        }
-    except Exception as e: 
-        return {
-            'statusCode': 500,
-            'error': e
-        }
+    if latest_checkin_id is None:
+        latest_checkin_id = event['latest_checkin_id']
+        
+    return {
+        'statusCode': 200,
+        'last_checkin_id': latest_checkin_id
+    }
 
 
 def main(logger, checkins, last_checkin_id):
@@ -86,6 +83,6 @@ def main(logger, checkins, last_checkin_id):
 
     for c in slackblock_stack:
         post_to_webhook(os.environ['webhook_url'], json.dumps(c))
-
+    
     return latest_checkin_id
     # write_latest_checkin_id(latest_checkin_id, config)

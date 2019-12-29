@@ -18,6 +18,10 @@ logging.basicConfig(
     filename=LOG_PATH, format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logging.info("=== Run started ===")
 
+class checkin_info:
+    def __init__(self):
+        self.review = ''
+
 def prepend_hostname(path: str) -> str:
     return "https://untappd.com" + path
 
@@ -35,12 +39,24 @@ def find_rating_in_class_list(classes: list) -> str:
     raise Exception(
         "could not find rating in classlist: [{}]".format(', '.join(classes)))
 
-
 def scrape_checkin_date(checkin_container) -> dict:
     feedback = checkin_container.find(
         'div', class_='checkin').find('div', class_='feedback')
     date = feedback.find('a').text
     return date
+
+
+def scrape_checkin_review(http_response_obj: requests.Response):
+    checkin_info = []
+    soup = BeautifulSoup(http_response_obj.content, 'html.parser')
+    find_all_result = soup.find_all(id=re.compile(r"^translate_\d+$"))
+    if (len(find_all_result) != 1):
+        print("found {} comments on page.".format(len(find_all_result)))
+        return None
+    node = find_all_result[0]
+    
+    return node.text.strip()
+
 
 
 def scrape_checkin(checkin_container) -> dict:
