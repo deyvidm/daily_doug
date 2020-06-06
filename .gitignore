@@ -29,3 +29,5 @@ test_cases*
 lib
 
 package.zip
+
+node_modules
