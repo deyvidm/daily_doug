@@ -26,8 +26,8 @@ runlog
 test_cases*
 
 .venv*
-lib
 
 package.zip
 
 node_modules
+dist
