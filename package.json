@@ -1,0 +1,25 @@
+{
+  "name": "daily_doug",
+  "version": "1.0.0",
+  "description": "need my daily dose o doug ",
+  "main": "main.js",
+  "dependencies": {
+    "node-untappd": "^0.4.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "run": "npm run build && node main.js",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deyvidm/daily_doug.git"
+  },
+  "author": "deyvid",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/deyvidm/daily_doug/issues"
+  },
+  "homepage": "https://github.com/deyvidm/daily_doug#readme"
+}
